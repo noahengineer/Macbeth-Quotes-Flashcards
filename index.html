@@ -39,7 +39,7 @@
 
   .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
   .chip{background:var(--panel);border:1px solid var(--line);color:var(--muted);padding:7px 14px;border-radius:999px;
-        font:inherit;font-size:.85rem;cursor:pointer;transition:.2s}
+        font:inherit;font-size:.85rem;cursor:pointer;transition:.2s;-webkit-user-select:none;user-select:none}
   .chip:hover{color:var(--text);border-color:#3a4c75}
   .chip.on{background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 25%,var(--panel)),color-mix(in srgb,var(--accent2) 25%,var(--panel)));color:var(--text);border-color:var(--accent)}
 
@@ -194,17 +194,21 @@
 
   <div id="end" class="hidden"></div>
 
-  <footer>Green = words you got · red = words you missed. Small words like "a" and "the" don't count against you.</footer>
+  <footer>Green = words you got · red = words you missed. Small words like "a" and "the" don't count against you. Tip: shift-click or press-and-hold the topic tabs to pick several.</footer>
 </div>
 
 <script>
 /* ===== CONFIG: the only part that changes per deck ===== */
 const CONFIG = {
   title: "Macbeth <span>Quotes</span>",
-  subtitle: "4 key scenes · type the quote from memory",
+  subtitle: "5 key scenes · type the quote from memory",
   prompt: "Type the quote.",
 };
 const CARDS = [
+  {t:"Macbeth: the witches' prophecy can't be evil or good", g:"Act 1 Sc 3 · The Witches' Prophecy", a:["Cannot be ill, cannot be good"]},
+  {t:"Macbeth: the terrifying mental picture of murdering Duncan", g:"Act 1 Sc 3 · The Witches' Prophecy", a:["Horrid image"]},
+  {t:"Macbeth: his pounding heart, going against nature", g:"Act 1 Sc 3 · The Witches' Prophecy", a:["Against the use of nature"]},
+  {t:"Macbeth: his wild imagination paralyses him", g:"Act 1 Sc 3 · The Witches' Prophecy", a:["Smothered in surmise"]},
   {t:"Lady Macbeth insults Macbeth for being weak-willed", g:"Act 2 Sc 2 · The Murder of Duncan", a:["Infirm of purpose"]},
   {t:"Lady Macbeth mocks Macbeth's cowardly heart (a colour)", g:"Act 2 Sc 2 · The Murder of Duncan", a:["A heart so white","white"]},
   {t:"Lady Macbeth: washing away the guilt is easy", g:"Act 2 Sc 2 · The Murder of Duncan", a:["A little water clears us","A little water clears us of this deed"]},
@@ -262,7 +266,7 @@ function compare(answer, typed){
 }
 
 // ---------- state ----------
-let deck=[], idx=0, right=0, streak=0, missed=[], phase="ask", filter="all";
+let deck=[], idx=0, right=0, streak=0, missed=[], phase="ask", filter=new Set();   // filter = selected groups, empty = all
 const $ = id=>document.getElementById(id);
 const card=$("card"), input=$("input");
 
@@ -377,7 +381,7 @@ function finish(){
   $("redoAll").onclick=()=>start(current());
   if(pct>=75){burst(innerWidth/2,innerHeight/3,140);setTimeout(()=>burst(innerWidth/3,innerHeight/2,90),250);setTimeout(()=>burst(innerWidth*2/3,innerHeight/2,90),450)}
 }
-function current(){return filter==="all"?CARDS:CARDS.filter(c=>c.g===filter)}
+function current(){return filter.size?CARDS.filter(c=>filter.has(c.g)):CARDS}
 const pick=a=>a[Math.random()*a.length|0];
 const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function countUp(el,to){const t0=performance.now();(function f(t){const k=Math.min(1,(t-t0)/1000);el.textContent=Math.round(to*(1-Math.pow(1-k,3)))+"%";if(k<1)requestAnimationFrame(f)})(t0)}
@@ -413,10 +417,22 @@ $("title").innerHTML = CONFIG.title; $("subtitle").textContent = CONFIG.subtitle
   $("chips").innerHTML=chips.map(([v,l],i)=>`<button class="chip${i?"":" on"}" data-set="${esc(v)}">${esc(l)}</button>`).join("");
   if(chips.length<2)$("chips").classList.add("hidden");
 })();
+// click = just that topic · shift/ctrl/cmd-click or press-and-hold = add/remove it from a multi-selection
+function pickChip(b,multi){
+  const v=b.dataset.set;
+  if(v==="all") filter.clear();
+  else if(multi){ filter.has(v)?filter.delete(v):filter.add(v); }
+  else { filter.clear(); filter.add(v); }
+  document.querySelectorAll(".chip").forEach(x=>x.classList.toggle("on", x.dataset.set==="all"? !filter.size : filter.has(x.dataset.set)));
+  start(current());
+}
+let holdT=null, held=false;
+$("chips").addEventListener("pointerdown",e=>{const b=e.target.closest(".chip"); if(!b)return; held=false; holdT=setTimeout(()=>{held=true;pickChip(b,true)},450)});
+["pointerup","pointerleave","pointercancel"].forEach(ev=>$("chips").addEventListener(ev,()=>clearTimeout(holdT)));
 $("chips").addEventListener("click",e=>{
   const b=e.target.closest(".chip"); if(!b)return;
-  document.querySelectorAll(".chip").forEach(x=>x.classList.toggle("on",x===b));
-  filter=b.dataset.set; start(current());
+  if(held){held=false;return}
+  pickChip(b,e.shiftKey||e.ctrlKey||e.metaKey);
 });
 
 // ---------- background: themed drifting particles (THEME.bg.kind) ----------
