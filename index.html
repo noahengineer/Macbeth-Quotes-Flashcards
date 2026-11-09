@@ -132,12 +132,51 @@
   .missed{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:16px 0 22px}
   .missed span{background:#f8717118;border:1px solid #f8717144;color:#fca5a5;padding:4px 10px;border-radius:99px;font-size:.82rem}
   footer{color:var(--muted);font-size:.75rem;text-align:center;margin-top:28px}
+
+  /* question sidebar */
+  .sbBtn{background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:12px;padding:8px 12px;font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;transition:.2s}
+  .sbBtn:hover{border-color:var(--accent);color:var(--accent)}
+  .wrap{transition:transform .35s cubic-bezier(.2,.9,.3,1)}
+  @media (min-width:1100px){body.sb .wrap{transform:translateX(-190px)}}
+  .side{position:fixed;top:0;right:0;height:100%;width:min(370px,92vw);background:var(--panel);border-left:1px solid var(--line);z-index:60;
+        transform:translateX(105%);transition:transform .35s cubic-bezier(.2,.9,.3,1);display:flex;flex-direction:column;box-shadow:-24px 0 60px #0009}
+  .side.open{transform:none}
+  .scrim{position:fixed;inset:0;background:#0008;z-index:55;opacity:0;pointer-events:none;transition:opacity .3s}
+  @media (max-width:1099px){.scrim.open{opacity:1;pointer-events:auto}}
+  .sideHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line)}
+  .sideHead b{font-family:var(--display),system-ui,serif;font-size:1.05rem}
+  .sideHead small{display:block;color:var(--muted);font-size:.72rem;font-weight:400;margin-top:2px}
+  .sideList{flex:1;overflow:auto;padding:4px 10px 16px}
+  .sgroup{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);margin:16px 8px 6px}
+  .sitem{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;background:transparent;border:1px solid transparent;color:var(--text);
+         font:inherit;font-size:.85rem;line-height:1.35;padding:8px 10px;border-radius:10px;cursor:pointer;transition:background .15s,border-color .15s;-webkit-user-select:none;user-select:none}
+  .sitem:hover{background:var(--panel2)}
+  .sitem .n{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--muted);min-width:22px;padding-top:2px}
+  .sitem .q{flex:1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .sitem .d{width:8px;height:8px;border-radius:50%;margin-top:6px;background:#ffffff22;flex:none}
+  .sitem.ok .d{background:var(--good)} .sitem.no .d{background:var(--bad)}
+  .sitem.out{opacity:.45}
+  .sitem.cur{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+  .sitem.sel{border-color:var(--accent2);background:color-mix(in srgb,var(--accent2) 22%,transparent)}
+  .sideFoot{padding:12px 14px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .sideFoot small{color:var(--muted);font-size:.75rem;flex:1 1 100%}
   @media (max-width:560px){header{flex-direction:column;align-items:flex-start}.face{padding:22px}.card{min-height:240px}}
 </style>
 </head>
 <body>
 <canvas id="bg"></canvas>
 <canvas id="fx"></canvas>
+
+<div class="scrim" id="scrim"></div>
+<aside class="side" id="side" aria-label="All questions">
+  <div class="sideHead"><div><b>Questions</b><small>Numbers = order in this round</small></div><button class="btn ghost" id="sbClose" title="Close (Esc)">✕</button></div>
+  <div class="sideList" id="sideList"></div>
+  <div class="sideFoot">
+    <small>Click = go to it · shift-click or press-and-hold = select several</small>
+    <button class="btn primary hidden" id="selGo"></button>
+    <button class="btn ghost hidden" id="selClear">Clear</button>
+  </div>
+</aside>
 
 <div class="wrap">
   <header>
@@ -146,6 +185,7 @@
       <div class="sub" id="subtitle"></div>
     </div>
     <div class="stats">
+      <button class="sbBtn" id="sbOpen" title="All questions">☰ Questions</button>
       <div class="stat"><b id="sDone">0/0</b><small>Card</small></div>
       <div class="stat"><b id="sRight">0</b><small>Correct</small></div>
       <div class="stat streak" id="streakBox"><b id="sStreak">0</b><small>Streak</small></div>
@@ -198,7 +238,7 @@
 
   <div id="end" class="hidden"></div>
 
-  <footer>Green = words you got · red = words you missed. Small words like "a" and "the" don't count against you. Tip: shift-click or press-and-hold the topic tabs to pick several.</footer>
+  <footer>Green = words you got · red = words you missed. Small words like "a" and "the" don't count against you. Tip: shift-click or press-and-hold the topic tabs to pick several · ☰ Questions lists every card · ← → to move between cards.</footer>
 </div>
 
 <script>
@@ -270,19 +310,19 @@ function compare(answer, typed){
 }
 
 // ---------- state ----------
-let deck=[], idx=0, right=0, streak=0, missed=[], phase="ask", filter=new Set();   // filter = selected groups, empty = all
+let deck=[], idx=0, res=[], streak=0, phase="ask", filter=new Set(), custom=null, sel=new Set();   // res[i] = true/false per deck card; filter = selected groups (empty = all); custom = hand-picked deck from the sidebar
 const $ = id=>document.getElementById(id);
 const card=$("card"), input=$("input");
 
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
 function start(list){
-  deck = shuffle([...list]); idx=0; right=0; streak=0; missed=[];
+  deck = shuffle([...list]); idx=0; res=[]; streak=0;
   $("game").classList.remove("hidden"); $("end").classList.add("hidden");
   show(); updateStats();
 }
 function updateStats(){
   $("sDone").textContent = `${Math.min(idx+1,deck.length)}/${deck.length}`;
-  $("sRight").textContent = right; $("sStreak").textContent = streak;
+  $("sRight").textContent = res.filter(x=>x===true).length; $("sStreak").textContent = streak;
   $("bar").style.width = (idx/deck.length*100)+"%";
 }
 function show(){
@@ -292,11 +332,11 @@ function show(){
   $("topic").textContent=c.g||""; $("topic").classList.toggle("hidden",!c.g); $("themes").textContent=c.th||""; $("themes").classList.toggle("hidden",!c.th); $("speaker").textContent=c.sp?"Said by "+c.sp:""; $("speaker").classList.toggle("hidden",!c.sp); $("term").textContent=c.t; $("termBack").textContent=c.t; $("spBack").textContent=c.sp?"· "+c.sp:""; $("term").style.fontSize=c.t.length>70?"1.45rem":c.t.length>35?"1.9rem":""; $("termBack").style.fontSize=c.t.length>70?"1.05rem":""; $("promptText").textContent=c.p||CONFIG.prompt||"";
   input.value=""; input.disabled=false;
   toggle(["checkBtn","skipBtn","hintBtn"],true); usedHint=false; $("hintline").classList.add("hidden"); $("hintline").innerHTML=""; toggle(["nextBtn","overrideBtn"],false);
-  $("hint").innerHTML='<kbd>Enter</kbd> check · <kbd>Shift</kbd>+<kbd>Enter</kbd> new line · <kbd>Alt</kbd>+<kbd>H</kbd> hint';
+  $("hint").innerHTML='<kbd>Enter</kbd> check · <kbd>Shift</kbd>+<kbd>Enter</kbd> new line · <kbd>Alt</kbd>+<kbd>H</kbd> hint · <kbd>←</kbd><kbd>→</kbd> back/skip';
   void card.offsetWidth; card.classList.add("enter");
   setTimeout(()=>card.classList.remove("enter"),600);
   setTimeout(()=>input.focus(),50);
-  updateStats();
+  updateStats(); renderSide();
 }
 function toggle(ids,on){ids.forEach(id=>$(id).classList.toggle("hidden",!on))}
 
@@ -341,34 +381,37 @@ function check(skip=false){
   input.disabled=true;
   toggle(["checkBtn","skipBtn","hintBtn"],false); toggle(["nextBtn"],true);
   toggle(["overrideBtn"], level!=="good" && !skip);
-  $("hint").innerHTML='<kbd>Enter</kbd> next card';
+  $("hint").innerHTML='<kbd>Enter</kbd> or <kbd>→</kbd> next card · <kbd>←</kbd> back';
 
   if(level==="good"){ mark(true); setTimeout(()=>burst(),450); }
   else { mark(false); setTimeout(()=>{card.classList.add("shake");setTimeout(()=>card.classList.remove("shake"),500)},800); }
   setTimeout(()=>$("nextBtn").focus(),100);
 }
-let lastCorrect=null;
 function mark(ok){
-  lastCorrect=ok;
-  if(ok){right++;streak++;bumpStreak()} else {streak=0;missed.push(deck[idx])}
-  updateStats();
+  res[idx]=ok;
+  if(ok){streak++;bumpStreak()} else streak=0;
+  updateStats(); renderSide();
 }
 function override(){
-  if(lastCorrect)return;
-  missed.pop(); right++; streak++; lastCorrect=true; bumpStreak(); updateStats();
+  if(res[idx]===true)return;
+  res[idx]=true; streak++; bumpStreak(); updateStats(); renderSide();
   $("vTitle").textContent="Counted as correct"; $("vTitle").style.color="var(--good)";
   toggle(["overrideBtn"],false); burst();
 }
 function bumpStreak(){const b=$("streakBox");b.classList.remove("bump");void b.offsetWidth;b.classList.add("bump")}
-function next(){
-  if(phase!=="shown")return;
+function next(){ if(phase==="shown") go(1); }
+// move to deck position j (arrow keys, sidebar); past the last card = end screen
+function go(d){ goTo(idx+d); }
+function goTo(j){
+  if(phase==="moving"||j<0||j===idx)return;
   phase="moving";
   card.classList.add("leave");
-  setTimeout(()=>{ idx++; if(idx>=deck.length) finish(); else show(); },340);
+  setTimeout(()=>{ idx=j; if(idx>=deck.length) finish(); else show(); },340);
 }
 function finish(){
   $("bar").style.width="100%";
   $("game").classList.add("hidden");
+  const right=res.filter(x=>x===true).length, missed=deck.filter((c,i)=>res[i]!==true);
   const pct=Math.round(right/deck.length*100);
   const end=$("end"); end.classList.remove("hidden");
   end.innerHTML=`<div class="done">
@@ -383,9 +426,10 @@ function finish(){
   const m=[...missed];
   if(m.length)$("redoMissed").onclick=()=>start(m);
   $("redoAll").onclick=()=>start(current());
+  renderSide();
   if(pct>=75){burst(innerWidth/2,innerHeight/3,140);setTimeout(()=>burst(innerWidth/3,innerHeight/2,90),250);setTimeout(()=>burst(innerWidth*2/3,innerHeight/2,90),450)}
 }
-function current(){return filter.size?CARDS.filter(c=>filter.has(c.g)):CARDS}
+function current(){return custom||(filter.size?CARDS.filter(c=>filter.has(c.g)):CARDS)}
 const pick=a=>a[Math.random()*a.length|0];
 const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function countUp(el,to){const t0=performance.now();(function f(t){const k=Math.min(1,(t-t0)/1000);el.textContent=Math.round(to*(1-Math.pow(1-k,3)))+"%";if(k<1)requestAnimationFrame(f)})(t0)}
@@ -423,7 +467,7 @@ $("title").innerHTML = CONFIG.title; $("subtitle").textContent = CONFIG.subtitle
 })();
 // click = just that topic · shift/ctrl/cmd-click or press-and-hold = add/remove it from a multi-selection
 function pickChip(b,multi){
-  const v=b.dataset.set;
+  const v=b.dataset.set; custom=null;
   if(v==="all") filter.clear();
   else if(multi){ filter.has(v)?filter.delete(v):filter.add(v); }
   else { filter.clear(); filter.add(v); }
@@ -437,6 +481,59 @@ $("chips").addEventListener("click",e=>{
   const b=e.target.closest(".chip"); if(!b)return;
   if(held){held=false;return}
   pickChip(b,e.shiftKey||e.ctrlKey||e.metaKey);
+});
+
+// ---------- question sidebar: every card, grouped by tab, numbered in this round's order ----------
+function renderSide(){
+  const pos=new Map(deck.map((c,i)=>[c,i])), inGame=!$("game").classList.contains("hidden");
+  const groups=[...new Set(CARDS.map(c=>c.g||""))];
+  const ord=c=>pos.has(c)?pos.get(c):1e9;
+  $("sideList").innerHTML=groups.map(g=>(g?`<div class="sgroup">${esc(g)}</div>`:"")+
+    CARDS.filter(c=>(c.g||"")===g).sort((a,b)=>ord(a)-ord(b)).map(c=>{
+      const i=pos.get(c), st=i===undefined?"out":res[i]===true?"ok":res[i]===false?"no":"";
+      return `<button class="sitem ${st}${inGame&&i===idx?" cur":""}${sel.has(c)?" sel":""}" data-k="${CARDS.indexOf(c)}">`+
+        `<span class="n">${i===undefined?"–":i+1}</span><span class="q">${esc(c.t)}</span><span class="d"></span></button>`;
+    }).join("")).join("");
+  $("selGo").textContent=`Practise these ${sel.size}`;
+  toggle(["selGo","selClear"],sel.size>0);
+}
+function sideOpen(on){
+  $("side").classList.toggle("open",on); $("scrim").classList.toggle("open",on); document.body.classList.toggle("sb",on);
+  if(on){renderSide(); const cur=$("sideList").querySelector(".cur"); if(cur)cur.scrollIntoView({block:"center"});}
+}
+function openCard(c){
+  let i=deck.indexOf(c);
+  if(i<0){ res.length=Math.max(res.length,idx+1); i=Math.min(idx+1,deck.length); deck.splice(i,0,c); res.splice(i,0,undefined); }   // not in this round: slot it in next
+  if($("game").classList.contains("hidden")){ $("game").classList.remove("hidden"); $("end").classList.add("hidden"); idx=i; show(); }
+  else goTo(i);
+  if(innerWidth<1100) sideOpen(false);
+}
+function toggleSel(c){ sel.has(c)?sel.delete(c):sel.add(c); renderSide(); }
+$("sbOpen").onclick=()=>sideOpen(!$("side").classList.contains("open"));
+$("sbClose").onclick=$("scrim").onclick=()=>sideOpen(false);
+$("selClear").onclick=()=>{sel.clear();renderSide()};
+$("selGo").onclick=()=>{
+  custom=CARDS.filter(c=>sel.has(c)); sel.clear(); filter.clear();
+  document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on"));
+  start(custom); if(innerWidth<1100) sideOpen(false);
+};
+let sHoldT=null, sHeld=false;
+$("sideList").addEventListener("pointerdown",e=>{const b=e.target.closest(".sitem"); if(!b)return; sHeld=false; sHoldT=setTimeout(()=>{sHeld=true;toggleSel(CARDS[+b.dataset.k])},450)});
+["pointerup","pointerleave","pointercancel"].forEach(ev=>$("sideList").addEventListener(ev,()=>clearTimeout(sHoldT)));
+$("sideList").addEventListener("click",e=>{
+  const b=e.target.closest(".sitem"); if(!b)return;
+  if(sHeld){sHeld=false;return}
+  const c=CARDS[+b.dataset.k];
+  if(e.shiftKey||e.ctrlKey||e.metaKey) toggleSel(c); else openCard(c);
+});
+// ← / → = previous / next card (left alone while there's text in the box, so the cursor still moves); Esc closes the sidebar
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"&&$("side").classList.contains("open")){sideOpen(false);return}
+  if(e.key!=="ArrowLeft"&&e.key!=="ArrowRight")return;
+  if(e.altKey||e.ctrlKey||e.metaKey||e.shiftKey)return;
+  if(document.activeElement===input&&input.value)return;
+  if($("game").classList.contains("hidden")){ if(e.key==="ArrowLeft"){e.preventDefault(); $("game").classList.remove("hidden"); $("end").classList.add("hidden"); idx=deck.length-1; show();} return; }
+  e.preventDefault(); go(e.key==="ArrowRight"?1:-1);
 });
 
 // ---------- background: themed drifting particles (THEME.bg.kind) ----------
