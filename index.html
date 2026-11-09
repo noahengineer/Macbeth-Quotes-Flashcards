@@ -74,6 +74,7 @@
   .term{font-family:var(--display),system-ui,serif;font-size:clamp(2rem,6vw,3.1rem);font-weight:700;letter-spacing:-.02em;line-height:1.05;
         background:linear-gradient(120deg,#fff 30%,var(--accent) 70%,var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
   .prompt{color:var(--muted);margin-top:14px;font-size:.95rem}
+  .themes{font-size:.8rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:color-mix(in srgb,var(--accent2) 55%,#fff);margin:-6px 0 14px}
   .hintline{margin-top:18px;font-family:'JetBrains Mono',monospace;font-size:1rem;color:var(--close);line-height:1.7;max-width:560px}
   .hintline .w{display:inline-block;margin-right:.55em;opacity:0;transform:translateY(-8px) scale(.8);animation:pop .3s forwards}
   .hintline .w i{font-style:normal;color:#facc1555;letter-spacing:.08em}
@@ -160,6 +161,7 @@
       <div class="card" id="card">
         <div class="face front">
           <div class="tag" id="topic"></div>
+          <div class="themes hidden" id="themes"></div>
           <div class="term" id="term"></div>
           <div class="prompt" id="promptText"></div>
           <div class="hintline hidden" id="hintline"></div>
@@ -201,30 +203,30 @@
 /* ===== CONFIG: the only part that changes per deck ===== */
 const CONFIG = {
   title: "Macbeth <span>Quotes</span>",
-  subtitle: "5 key scenes · read the effect, type the quote",
+  subtitle: "5 key scenes · read the essay point, type the quote",
   prompt: "Type the quote.",
 };
 const CARDS = [
-  {t:"Macbeth echoes the witches' paradoxes: the prophecy seems neither evil nor kind, showing their moral confusion infecting his mind", g:"Act 1 Sc 3 · The Witches' Prophecy", a:["Cannot be ill, cannot be good"]},
-  {t:"The terrifying picture of killing Duncan that flashes into Macbeth's mind: proof his conscience is still intact", g:"Act 1 Sc 3 · The Witches' Prophecy", a:["Horrid image"]},
-  {t:"Regicide breaks the Great Chain of Being: just thinking of it makes Macbeth's heart pound against all normal instinct", g:"Act 1 Sc 3 · The Witches' Prophecy", a:["Against the use of nature"]},
-  {t:"Macbeth already treats his new title as just the prologue to a royal story: his ambition takes hold before Lady Macbeth says a word", g:"Act 1 Sc 3 · The Witches' Prophecy", a:["Imperial theme","The imperial theme"]},
-  {t:"Lady Macbeth brands Macbeth weak-willed and seizes control: a reversal of gender roles as his guilt stops him framing the guards", g:"Act 2 Sc 2 · The Murder of Duncan", a:["Infirm of purpose"]},
-  {t:"Colour imagery: Lady Macbeth shames Macbeth's cowardice, his fear-drained paleness against her blood-red hands", g:"Act 2 Sc 2 · The Murder of Duncan", a:["A heart so white","white"]},
-  {t:"Lady Macbeth thinks guilt washes off easily: dramatic irony that sets up her sleepwalking breakdown", g:"Act 2 Sc 2 · The Murder of Duncan", a:["A little water clears us","A little water clears us of this deed"]},
-  {t:"Macbeth wishes the noise at the gate could rouse the dead king: instant remorse makes him a tragic hero, not a cold villain", g:"Act 2 Sc 2 · The Murder of Duncan", a:["Wake Duncan with thy knocking"]},
-  {t:"Murder demands more murder in return: Macbeth sees that violence is an endless cycle of vengeance", g:"Act 3 Sc 4 · Banquo's Ghost", a:["Blood will have blood"]},
-  {t:"Macbeth's point of no return: he has waded so deep into a river of crime that turning back is as hard as going on", g:"Act 3 Sc 4 · Banquo's Ghost", a:["Stepped in so far"]},
-  {t:"Lady Macbeth blames his visions on exhaustion, naming the natural preservative that keeps every living thing sane: guilt has murdered his rest", g:"Act 3 Sc 4 · Banquo's Ghost", a:["Season of all natures, sleep"]},
-  {t:"Macbeth dismisses his terror at the ghost as beginner's nerves that more killing will cure: he is hardening into a tyrant", g:"Act 3 Sc 4 · Banquo's Ghost", a:["Young in deed","We are yet but young in deed"]},
-  {t:"Lady Macbeth scrubs at an imaginary bloodstain, the word for 'cursed' also meaning condemned to hell: the ruthless mastermind is broken by guilt", g:"Act 5 Sc 1 · Sleepwalking", a:["Out, damned spot"]},
-  {t:"Not even the world's finest scents can hide the smell of blood on her small hand: sensory imagery echoing Macbeth's 'Neptune's ocean'", g:"Act 5 Sc 1 · Sleepwalking", a:["Perfumes of Arabia","All the perfumes of Arabia will not sweeten this little hand"]},
-  {t:"Lady Macbeth reverses her own earlier dismissive line: she now despairs that the murders can never be reversed or erased", g:"Act 5 Sc 1 · Sleepwalking", a:["What's done cannot be undone"]},
-  {t:"A broken sing-song rhyme about Macduff's slaughtered family: she is haunted even by Macbeth's crimes she had no part in", g:"Act 5 Sc 1 · Sleepwalking", a:["The Thane of Fife had a wife"]},
-  {t:"Repetition makes time drag: each day crawls meaninglessly toward death now his ambition has cost him everything", g:"Act 5 Sc 5 · Tomorrow Speech", a:["Tomorrow, and tomorrow, and tomorrow"]},
-  {t:"Life as a short, fragile flame quickly snuffed out by death: light and dark imagery of mortality", g:"Act 5 Sc 5 · Tomorrow Speech", a:["Out, out, brief candle"]},
-  {t:"Life as an empty illusion and a bad actor forgotten after one hour on stage: his pursuit of power was a hollow performance", g:"Act 5 Sc 5 · Tomorrow Speech", a:["A walking shadow","Life's but a walking shadow, a poor player"]},
-  {t:"Life as a story told by a fool, loud and passionate but meaningless: the climax of Macbeth's nihilism", g:"Act 5 Sc 5 · Tomorrow Speech", a:["Full of sound and fury","Told by an idiot, full of sound and fury"]},
+  {t:"Act 1: Macbeth instantly copies the witches' paradoxical language, proving their equivocation has already infected his thinking", th:"The Supernatural · Appearance vs Reality", g:"Act 1 Sc 3 · The Witches' Prophecy", a:["Cannot be ill, cannot be good"]},
+  {t:"Act 1: Macbeth is terrified by the mere thought of killing Duncan, proving his conscience is still intact before Lady Macbeth's influence", th:"Ambition vs Conscience · Guilt", g:"Act 1 Sc 3 · The Witches' Prophecy", a:["Horrid image"]},
+  {t:"Act 1: Even imagining regicide makes Macbeth's body react unnaturally, showing that killing a king violates the Great Chain of Being", th:"Natural Order · Internal Conflict", g:"Act 1 Sc 3 · The Witches' Prophecy", a:["Against the use of nature"]},
+  {t:"Act 1: The moment one prophecy comes true, Macbeth leaps to the crown in his mind, proving his ambition existed before Lady Macbeth persuaded him", th:"Ambition · Fate vs Free Will", g:"Act 1 Sc 3 · The Witches' Prophecy", a:["Imperial theme","The imperial theme"]},
+  {t:"Act 2: Lady Macbeth attacks Macbeth's manhood and takes the daggers herself, showing she is the dominant partner straight after the murder", th:"Gender Roles · Power in the Marriage", g:"Act 2 Sc 2 · The Murder of Duncan", a:["Infirm of purpose"]},
+  {t:"Act 2: Lady Macbeth contrasts her blood-red hands with Macbeth's pale, fearful heart, mocking his cowardice to assert her own strength", th:"Courage vs Cowardice · Colour Imagery", g:"Act 2 Sc 2 · The Murder of Duncan", a:["A heart so white","white"]},
+  {t:"Act 2: Lady Macbeth believes guilt washes off easily, which becomes tragically ironic when she can't stop scrubbing her hands in Act 5", th:"Guilt · Dramatic Irony", g:"Act 2 Sc 2 · The Murder of Duncan", a:["A little water clears us","A little water clears us of this deed"]},
+  {t:"Act 2: Macbeth wishes the noise at the gate could undo the murder, showing instant regret that keeps him a tragic hero rather than a cold villain", th:"Remorse · Tragic Hero", g:"Act 2 Sc 2 · The Murder of Duncan", a:["Wake Duncan with thy knocking"]},
+  {t:"Act 3: After Banquo's ghost, Macbeth realises murder is always repaid with more murder, foreshadowing his own violent end", th:"Cycle of Violence · Retribution", g:"Act 3 Sc 4 · Banquo's Ghost", a:["Blood will have blood"]},
+  {t:"Act 3: Macbeth decides turning back to goodness is as hard as carrying on killing, marking his turn into a tyrant", th:"Point of No Return · Tyranny", g:"Act 3 Sc 4 · Banquo's Ghost", a:["Stepped in so far"]},
+  {t:"Act 3: Lady Macbeth blames Macbeth's visions on exhaustion, linking back to his Act 2 fear that he has murdered his own rest", th:"Sleep Symbolism · Psychological Decay", g:"Act 3 Sc 4 · Banquo's Ghost", a:["Season of all natures, sleep"]},
+  {t:"Act 3: Macbeth dismisses his fear of the ghost as inexperience, showing he now sees murder as a skill to practise", th:"Moral Corruption · Hardening into Evil", g:"Act 3 Sc 4 · Banquo's Ghost", a:["Young in deed","We are yet but young in deed"]},
+  {t:"Act 5: Lady Macbeth frantically scrubs at an imaginary bloodstain, showing the guilt she dismissed in Act 2 has destroyed her mind", th:"Guilt · Damnation", g:"Act 5 Sc 1 · Sleepwalking", a:["Out, damned spot"]},
+  {t:"Act 5: Lady Macbeth now uses hyperbole like Macbeth's 'Neptune's ocean', showing the roles have reversed: she is the one consumed by guilt", th:"Guilt · Sensory Imagery · Role Reversal", g:"Act 5 Sc 1 · Sleepwalking", a:["Perfumes of Arabia","All the perfumes of Arabia will not sweeten this little hand"]},
+  {t:"Act 5: Lady Macbeth reverses her Act 3 dismissal of the past, admitting the murders are permanent: her ruthless control has collapsed", th:"Despair · Character Arc", g:"Act 5 Sc 1 · Sleepwalking", a:["What's done cannot be undone"]},
+  {t:"Act 5: Lady Macbeth is haunted by the slaughter of Macduff's family, a crime Macbeth committed without her, showing her guilt spreading beyond her own actions", th:"Guilt · Breakdown of the Marriage", g:"Act 5 Sc 1 · Sleepwalking", a:["The Thane of Fife had a wife"]},
+  {t:"Act 5: Hearing of his wife's death, Macbeth uses repetition to show life has become a monotonous crawl toward death now ambition has cost him everything", th:"Time · Nihilism", g:"Act 5 Sc 5 · Tomorrow Speech", a:["Tomorrow, and tomorrow, and tomorrow"]},
+  {t:"Act 5: Macbeth compares life to a fragile flame easily blown out, tying into the play's imagery of light and darkness", th:"Mortality · Light vs Dark Imagery", g:"Act 5 Sc 5 · Tomorrow Speech", a:["Out, out, brief candle"]},
+  {t:"Act 5: Macbeth compares life to an illusion and an actor forgotten after one performance, admitting his pursuit of power was hollow", th:"Appearance vs Reality · Metatheatre", g:"Act 5 Sc 5 · Tomorrow Speech", a:["A walking shadow","Life's but a walking shadow, a poor player"]},
+  {t:"Act 5: Macbeth concludes life is loud and passionate but ultimately meaningless, the bleak end point of his ambition", th:"Nihilism · Tragic Downfall", g:"Act 5 Sc 5 · Tomorrow Speech", a:["Full of sound and fury","Told by an idiot, full of sound and fury"]},
 ];
 const THEME = {
   fonts:{url:"https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=EB+Garamond:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap",
@@ -285,7 +287,7 @@ function show(){
   const c=deck[idx];
   phase="ask";
   card.classList.remove("flipped","leave");
-  $("topic").textContent=c.g||""; $("topic").classList.toggle("hidden",!c.g); $("term").textContent=c.t; $("termBack").textContent=c.t; $("term").style.fontSize=c.t.length>70?"1.45rem":c.t.length>35?"1.9rem":""; $("termBack").style.fontSize=c.t.length>70?"1.05rem":""; $("promptText").textContent=c.p||CONFIG.prompt||"";
+  $("topic").textContent=c.g||""; $("topic").classList.toggle("hidden",!c.g); $("themes").textContent=c.th||""; $("themes").classList.toggle("hidden",!c.th); $("term").textContent=c.t; $("termBack").textContent=c.t; $("term").style.fontSize=c.t.length>70?"1.45rem":c.t.length>35?"1.9rem":""; $("termBack").style.fontSize=c.t.length>70?"1.05rem":""; $("promptText").textContent=c.p||CONFIG.prompt||"";
   input.value=""; input.disabled=false;
   toggle(["checkBtn","skipBtn","hintBtn"],true); usedHint=false; $("hintline").classList.add("hidden"); $("hintline").innerHTML=""; toggle(["nextBtn","overrideBtn"],false);
   $("hint").innerHTML='<kbd>Enter</kbd> check · <kbd>Shift</kbd>+<kbd>Enter</kbd> new line · <kbd>Alt</kbd>+<kbd>H</kbd> hint';
